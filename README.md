@@ -7,15 +7,26 @@
 ## Usage In SubModule
 
 - git submodule add https://github.com/lixi0912/OKDALM2 deploy
-- let project build.gradle apply from: 'deploy/artifactory.gradle'
+- root/build.gradle
+    - add apply from: "deploy/artifactory.gradle"        
+    - add classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5"
+- root/gradle.properties add maven account info
+        <pre>
+        maven_groupId=your.group.id
+        artifactory_user=admin
+        artifactory_password=password
+        artifactory_contextUrl=http://localhost:8081/artifactory
+        artifactory_snapshot_repoKey=libs-snapshot-local
+        artifactory_release_repoKey=libs-release-local
+        version_prefix=
+        </pre>
 - copy artifactory_version.properties to root_project dir
-- settings.gradle include 'deploy'
-
+- root/settings.gradle include 'deploy'
 
 - Terminal
   - cd deploy
   - python deploy.py [-c] [-l] [-a] [-u] [-r] module_name
-      - [-l] to local maven
+      - [-l] publish to local maven
       - [-u] force upgrade
       - [-a] deploy all
       - [-c] deploy module by module_name
