@@ -6,14 +6,14 @@
 
 ## Usage In SubModule
 
-- git submodule add https://github.com/lixi0912/OKDALM2 .deploy
-- let project build.gradle apply from: '.deploy/artifactory.gradle'
+- git submodule add https://github.com/lixi0912/OKDALM2 deploy
+- let project build.gradle apply from: 'deploy/artifactory.gradle'
 - copy artifactory_version.properties to root_project dir
-- settings.gradle include '.deploy'
+- settings.gradle include 'deploy'
 
 
 - Terminal
-  - cd .deploy
+  - cd deploy
   - python deploy.py [-c] [-l] [-a] [-u] [-r] module_name
       - [-l] to local maven
       - [-u] force upgrade
