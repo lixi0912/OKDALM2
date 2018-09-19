@@ -9,7 +9,7 @@ buildscript {
         maven { url "${artifactory_contextUrl}/${artifactory_release_repoKey}" }
     }
     dependencies {
-        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.6.0"
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5"
     }
 
 }
@@ -40,7 +40,7 @@ subprojects {
 
     //读取module的version
     Properties props = new Properties()
-    File propFile = file(rootDir.path + "/artifactory_version.properties");
+    File propFile = file(rootDir.path + "/artifactory_version.properties")
     if (propFile.exists()) {
         props.load(new FileInputStream(propFile))
     }
@@ -49,6 +49,17 @@ subprojects {
     def versionType = maven_type == SNAPSHOT_MAVEN_TYPE ? '-SNAPSHOT' : ''
     def artifactName = props.getProperty(project.name + 'ArtifactId', project.name)
     def artifactGroupId = props.getProperty(project.name + 'GroupId', maven_groupId)
+
+
+
+    Properties pomProps = new Properties()
+    File pomFile = file(rootDir.path + "/pom.properties")
+    if (!pomFile.exists()) {
+        pomFile = file(rootDir.path + "/deploy/pom.properties")
+    }
+    if (pomFile.exists()) {
+        pomProps.load(new FileInputStream(pomFile))
+    }
 
     publishing {
         publications {
@@ -84,39 +95,26 @@ subprojects {
 
                     //Defining configuration names from which dependencies will be taken (debugCompile or releaseCompile and compile)
                     project.configurations.each { configuration ->
+
+                        if (!pomProps.containsKey(configuration.name) || configuration.dependencies.isEmpty()) {
+                            println "----> skip configuration: $configuration.name"
+                            return
+                        }
                         configuration.dependencies.each {
                             println "========================================"
                             println "append dependency to pom"
-                            if (it.group == null || it.name == null ||
-                                    it.group == project.parent.name) {
-                                return
-                            }
-
-                            if ("org.jacoco" == it.group) {
-                                println "skip dependency:" + it.name
-                                return
-                            }
-                            
-                            if ("lint-gradle" == it.name) {
-                                println "skip dependency:" + it.name
-                                return
-                            }
-
-                            if (it.name.startsWith("test") || it.name.startsWith("debug")) {
-                                println "skip dependency:" + it.name
-                                return
-                            }
-
                             println "<dependency>"
                             println "  <groupId>" + it.group + "</groupId>"
                             println "  <artifactId>" + it.name + "</artifactId>"
                             println "  <version>" + it.group + "</version>"
+                            println "  <scope>" + configuration.name + "</scope>"
                             println "</dependency>"
 
                             def dependencyNode = dependenciesNode.appendNode('dependency')
                             dependencyNode.appendNode('groupId', it.group)
                             dependencyNode.appendNode('artifactId', it.name)
                             dependencyNode.appendNode('version', it.version)
+                            dependencyNode.appendNode('scope', configuration.name)
 
                             //If there are any exclusions in dependency
                             if (it.excludeRules.size() > 0) {
