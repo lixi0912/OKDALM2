@@ -101,6 +101,11 @@ subprojects {
                             return
                         }
                         configuration.dependencies.each {
+                            if (it.group == null || it.name == null ||
+                                    it.group == project.parent.name) {
+                                return
+                            }
+
                             println "========================================"
                             println "append dependency to pom"
                             println "<dependency>"
