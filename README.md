@@ -22,7 +22,9 @@
         </pre>
 - copy artifactory_version.properties to root_project dir
 - root/settings.gradle include 'deploy'
-
+- config special configuration (default deploy/pom.properties)
+  - copy pom.properties to root_project dir
+  - add configuration
 - Terminal
   - cd deploy
   - python deploy.py [-c] [-l] [-a] [-u] [-r] module_name
@@ -31,7 +33,8 @@
       - [-a] deploy all
       - [-c] deploy module by module_name
       - [-r] force release 
-
+      - [-d] print log
+      - [-i] build with --info --stacktrace 
 
 ----
 
