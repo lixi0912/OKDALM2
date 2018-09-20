@@ -97,7 +97,7 @@ subprojects {
                     project.configurations.each { configuration ->
 
                         if (!pomProps.containsKey(configuration.name) || configuration.dependencies.isEmpty()) {
-                            println "----> skip configuration: $configuration.name"
+//                            println "----> skip configuration: $configuration.name"
                             return
                         }
                         configuration.dependencies.each {
@@ -111,7 +111,7 @@ subprojects {
                             println "<dependency>"
                             println "  <groupId>" + it.group + "</groupId>"
                             println "  <artifactId>" + it.name + "</artifactId>"
-                            println "  <version>" + it.group + "</version>"
+                            println "  <version>" + it.version + "</version>"
                             println "  <scope>" + configuration.name + "</scope>"
                             println "</dependency>"
 
