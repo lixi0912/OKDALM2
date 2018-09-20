@@ -12,11 +12,14 @@ RELEASE_MAVEN_TYPE = 'release'
 ARTIFACTORY_FILE_NAME = 'artifactory_version.properties'
 KEY_MAVEN_TYPE = 'maven_type'
 SNAPSHOT_SUFFIX = '-SNAPSHOT'
-log_result = None
-debugMode = None
-to_local = None
-upgrade = None
-in_cur_dir = False
+g_log_result = None
+g_debugMode = None
+g_to_local = None
+g_upgrade = None
+g_deploy_all = None
+g_in_cur_dir = False
+g_force_snap = True
+g_reverse = 1
 
 
 def dump_help():
@@ -46,19 +49,19 @@ def get_command():
     # elif 'Linux' == plat:
     #     return './gradlew '
     else:
-        return './gradlew ' if in_cur_dir else '../gradlew '
+        return './gradlew ' if g_in_cur_dir else '../gradlew '
 
 
 # 如果是 debugMode 就显示编译信息
 def format_debug_if_need(command_str):
-    if debugMode:
+    if g_debugMode:
         return command_str + ' --info --stacktrace --debug'
     else:
         return command_str
 
 
 def do_deploy_to_maven_local(lib_module_name):
-    if not to_local:
+    if not g_to_local:
         return
     ## 先编译成 aar
     command_str = '{0} :{1}:clean :{1}:assembleRelease '
@@ -72,7 +75,7 @@ def do_deploy_to_maven_local(lib_module_name):
 def do_deploy(lib_module_name, is_reverse):
     print '--------------     [ %s ] deploy: start     ---------------------' % lib_module_name
 
-    if to_local:
+    if g_to_local:
         result = do_deploy_to_maven_local(lib_module_name)
     else:
         command_str = '{0} :{1}:clean :{1}:assembleRelease :{1}:generatePomFileForAarPublication :{1}:artifactoryPublish'
@@ -120,7 +123,7 @@ def do_exec(command_str, lib_module_name):
     command_str = format_debug_if_need(command_str)
     command = command_str.format(get_command(), lib_module_name)
     print command
-    if log_result:
+    if g_log_result:
         result = os.system(command)
     else:
         result, log = commands.getstatusoutput(command)
@@ -131,7 +134,7 @@ def do_exec(command_str, lib_module_name):
 
 # 从release切到snapshot时进行版本升级
 def version_level_up(lib_module_name):
-    if not upgrade:
+    if not g_upgrade:
         return
 
     # 说明当前需要升级
@@ -177,7 +180,7 @@ def rewrite_module_maven_type(lib_module_name):
 
 
 def force_release():
-    return not force_snap
+    return not g_force_snap
 
 
 def make_maven_key(lib_module_name):
@@ -204,6 +207,60 @@ def get_deploy_version(lib_module_name):
     return version
 
 
+def read_modules(sys):
+    global g_deploy_all
+    global g_to_local
+    index = 1
+    argLen = len(sys.argv)
+    if argLen < 2:
+        dump_help()
+    else:
+        while argLen > index:
+            value = sys.argv[index].strip()
+            if value.startswith('-'):
+                if value == '-h':
+                    dump_help()
+                elif value == '-c':
+                    reverse = 0
+                elif value == '-a':
+                    g_deploy_all = True
+                elif value == '-d':
+                    log_result = True
+                elif value == '-r':
+                    force_snap = None
+                elif value == '-i':
+                    debugMode = True
+                elif value == '-l':
+                    g_to_local = True
+                elif value == '-u':
+                    upgrade = True
+            else:
+                break
+            index += 1
+
+    module_name = ''
+    if not g_deploy_all:
+        if argLen > index:
+            module_name = sys.argv[index]  # 要deploy的module名称
+            index += 1
+        elif index > 0:
+            g_deploy_all = True
+        else:
+            dump_help()
+    return module_name
+
+
+def project_path():
+    path = None
+    if os.path.exists(os.getcwd() + '/gradle.properties'):
+        in_cur_dir = True
+        path = os.path.abspath(os.path.curdir)  # 默认为当前目录
+    else:
+        in_cur_dir = False
+        path = os.path.abspath('..')  # 默认为当前目录
+    return path
+
+
 ### deploy的主方法
 ### name: 要发布的模块名称
 ### is_reverse: 是否更新发布（直接/间接）依赖本module的其它module（反向查找依赖module）
@@ -222,55 +279,13 @@ def deploy_main(lib_module_name, is_reverse):
 
 ### 直接调用打球py文件
 if __name__ == '__main__':
-    argLen = len(sys.argv)
-    if argLen < 2:
-        dump_help()
-    else:
-        index = 1  # 取参数的索引
-        reverse = 1  # deploy 依赖该 module 的所有 module
-        force_snap = True
-        deploy_all = None
-        while argLen > index:
-            value = sys.argv[index].strip()
-            if value.startswith('-'):
-                if value == '-h':
-                    dump_help()
-                elif value == '-c':
-                    reverse = 0
-                elif value == '-a':
-                    deploy_all = True
-                elif value == '-d':
-                    log_result = True
-                elif value == '-r':
-                    force_snap = None
-                elif value == '-i':
-                    debugMode = True
-                elif value == '-l':
-                    to_local = True
-                elif value == '-u':
-                    upgrade = True
-            else:
-                break
-            index += 1
-        module_name = ''
-        if not deploy_all:
-            if argLen > index:
-                module_name = sys.argv[index]  # 要deploy的module名称
-                index += 1
-            elif index > 0:
-                deploy_all = True
-            else:
-                dump_help()
+    module_name = read_modules(sys)
 
-        if platform.system() == 'Windows':  # windows环境执行commands.getstatusoutput(command)时报错
-            log_result = True
+    # windows环境执行commands.getstatusoutput(command)时报错
+    if platform.system() == 'Windows':
+        g_log_result = True
 
-        if os.path.exists(os.getcwd() + '/gradle.properties'):
-            in_cur_dir = True
-            project_abs_path = os.path.abspath(os.path.curdir)  # 默认为当前目录
-        else:
-            in_cur_dir = False
-            project_abs_path = os.path.abspath('..')  # 默认为当前目录
+    project_abs_path = project_path()
 
     gradle_properties = property.parse(os.path.join(project_abs_path, 'gradle.properties'))
     version_properties = property.parse(os.path.join(project_abs_path, ARTIFACTORY_FILE_NAME))
@@ -284,23 +299,24 @@ if __name__ == '__main__':
     print '\n++++++++++++++++++++++++++++++++   deploy start working  (start at: %s)    ++++++++++++++++++++++++++++++++++++++++++' % start_time
 
     try:
-        if deploy_all:  # deploy所有在artifactory_version.properties中配置的module
+        if g_deploy_all:  # deploy所有在artifactory_version.properties中配置的module
             print 'deploy below modules:'
             print module_dependencies.sorted_modules
             success = []
             failed = []
             for module in module_dependencies.sorted_modules:  # 按照依赖关系的顺序进行发布
-                if deploy_main(module, 0) == 0:
-                    success.append(module)
-                else:
-                    failed.append(module)
+                if module not in success:
+                    if deploy_main(module, 0) == 0:
+                        success.append(module)
+                    else:
+                        failed.append(module)
             print '\ndeploy finished!'
             print 'success:' + str(len(success))
             print success
             print 'failed:' + str(len(failed))
             print failed
         else:
-            deploy_main(module_name, reverse)
+            deploy_main(module_name, g_reverse)
     except Exception, e:
         print traceback.format_exc()
 
