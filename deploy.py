@@ -210,53 +210,57 @@ def get_deploy_version(lib_module_name):
 def read_modules(sys):
     global g_deploy_all
     global g_to_local
+    global g_debugMode
+    global g_force_snap
+    global g_upgrade
+    global g_reverse
+    global g_log_result
+
     index = 1
-    argLen = len(sys.argv)
-    if argLen < 2:
+    arg_len = len(sys.argv)
+    if arg_len < 2:
         dump_help()
     else:
-        while argLen > index:
+        while arg_len > index:
             value = sys.argv[index].strip()
             if value.startswith('-'):
                 if value == '-h':
                     dump_help()
                 elif value == '-c':
-                    reverse = 0
+                    g_reverse = 0
                 elif value == '-a':
                     g_deploy_all = True
                 elif value == '-d':
-                    log_result = True
+                    g_log_result = True
                 elif value == '-r':
-                    force_snap = None
+                    g_force_snap = None
                 elif value == '-i':
-                    debugMode = True
+                    g_debugMode = True
                 elif value == '-l':
                     g_to_local = True
                 elif value == '-u':
-                    upgrade = True
+                    g_upgrade = True
             else:
                 break
             index += 1
-
-    module_name = ''
+    result = ''
     if not g_deploy_all:
-        if argLen > index:
-            module_name = sys.argv[index]  # 要deploy的module名称
+        if arg_len > index:
+            result = sys.argv[index]  # 要deploy的module名称
             index += 1
         elif index > 0:
             g_deploy_all = True
         else:
             dump_help()
-    return module_name
+    return result
 
 
 def project_path():
-    path = None
+    global g_in_cur_dir
     if os.path.exists(os.getcwd() + '/gradle.properties'):
-        in_cur_dir = True
+        g_in_cur_dir = True
         path = os.path.abspath(os.path.curdir)  # 默认为当前目录
     else:
-        in_cur_dir = False
         path = os.path.abspath('..')  # 默认为当前目录
     return path
 
