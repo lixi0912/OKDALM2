@@ -44,12 +44,12 @@
 
 ### Future
 
- - [  ] ~~auto update dependency version~~
+ - [ ] ~~auto update dependency version~~
     <pre>
-    use `compile "your.group.id:parent-lib:$parent-lib"` instead
+    use compile "your.group.id:parent-lib:$parent-lib" instead
     </pre>
 
- - [  ] child version depends on parent version 
+ - [ ] child version depends on parent version 
     <pre>
     artifactory_version.properties
         children-lib = $parent-lib
