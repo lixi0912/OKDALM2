@@ -40,10 +40,10 @@ class Dependency:
             r'.*(ompile|pi|mplementation).*((' + gradle_properties.get('maven_groupId') + ')|(:(' + '|'.join(
                 module_array) + '):)).*')
         for file in module_array:
-                path = os.path.join(root_dir, file)
-                gradle = os.path.join(path, 'build.gradle')
-                if os.path.isdir(path) and os.path.isfile(gradle):
-                    self.modules[file] = read_gradle_dependencies(self.pattern, gradle)
+            path = os.path.join(root_dir, file)
+            gradle = os.path.join(path, 'build.gradle')
+            if os.path.isdir(path) and os.path.isfile(gradle):
+                self.modules[file] = read_gradle_dependencies(self.pattern, gradle)
         self.sorted_modules = self.sort_by_dependency_relationship()
 
     # 获取直接或间接依赖name的所有module
@@ -139,11 +139,12 @@ def read_dependency_line(line):
 
 ### 反向查找指定module的依赖（直接和间接依赖该module的module）
 def find_reverse_dependency_module(modules, name, rev_modules):
-    for i in modules:
-        if name in modules[i]:
-            if i not in rev_modules:
-                rev_modules.append(i)
-            find_reverse_dependency_module(modules, i, rev_modules)
+    for module_name in modules:
+        if name in modules[module_name]:
+            if module_name not in rev_modules:
+                rev_modules.append(module_name)
+            if module_name != name:
+                find_reverse_dependency_module(modules, module_name, rev_modules)
 
 
 # 读取工程中的依赖关系
