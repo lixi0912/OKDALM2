@@ -147,17 +147,31 @@ def version_level_up(lib_module_name):
     # 说明当前到操作是要发布 snapshot 版
     # 也就是当前 deploy 的操作从 release 版切换到 snapshot 版，版本号自动升级
     # 自动升级版本号只是升级一个小版本：最后一位数字（非数字自动忽略），若要升级大版本，可手动修改 artifactory_veresion.properties 中的版本号
-    arr = dv.split('.')
-    last_index = len(arr) - 1
-    while last_index > -1:
-        try:
-            to_last_lvl = str(int(arr[last_index]) + 1)
-            arr[last_index] = to_last_lvl
+
+    last_int_end = len(dv)
+    last_int_start = last_int_end - 1
+
+    while True:
+        if last_int_start >= 0 and dv[last_int_start].isdigit():
+            if last_int_start > 0:
+                last_int_start -= 1
+            else:
+                break
+        elif last_int_start == last_int_end -1 :
+            last_int_end = last_int_start
+            if last_int_start > 0:
+                last_int_start -= 1
+            else:
+                break
+        else:
+            last_int_start += 1
             break
-        except Exception, ne:
-            last_index -= 1
-    if last_index > -1:
-        version = '.'.join(arr)
+    if 0 <= last_int_start < last_int_end:
+
+        last_number = dv[last_int_start:last_int_end ]
+        upgraded_version_number = str(int(last_number) + 1)
+
+        version = dv[:last_int_start] + upgraded_version_number + dv[last_int_end:]
         version_properties.put(lib_module_name, version)
         print 'NOTE: modify %s: [%s: %s -> %s]' % (
             ARTIFACTORY_FILE_NAME, lib_module_name, dv, version)
