@@ -30,20 +30,20 @@ class Dependency:
         ### 读取在 version_properties 中配置的 modules
         ### 适配如 api 'group:lib:version'
         ### 适配如 api project(':lib')
-        keys = '|'.join(version_properties.keys())
+        module_array = get_deploy_modules(root_dir, version_properties)
 
         self.root_dir = root_dir
         # 过滤含有build.gradle文件的文件夹（为module）,并解析出build.gradle中对当前工程中各module的依赖项
         self.modules = {}
         ### 匹配当前groupId的依赖项
-        self.pattern = re.compile(r'.*(ompile|pi|mplementation).*((' + gradle_properties.get('maven_groupId') + ')|(' + keys + ')).*')
-        for file in os.listdir(root_dir):
-            if version_properties.has_key(file):
+        self.pattern = re.compile(
+            r'.*(ompile|pi|mplementation).*((' + gradle_properties.get('maven_groupId') + ')|(:(' + '|'.join(
+                module_array) + '):)).*')
+        for file in module_array:
                 path = os.path.join(root_dir, file)
                 gradle = os.path.join(path, 'build.gradle')
                 if os.path.isdir(path) and os.path.isfile(gradle):
                     self.modules[file] = read_gradle_dependencies(self.pattern, gradle)
-
         self.sorted_modules = self.sort_by_dependency_relationship()
 
     # 获取直接或间接依赖name的所有module
@@ -79,6 +79,14 @@ class Dependency:
             if len(tmp) > 0:
                 sorted_modules.extend(tmp)
         return sorted_modules
+
+
+def get_deploy_modules(root_dir, version_properties):
+    module_array = []
+    for file in os.listdir(root_dir):
+        if version_properties.has_key(file):
+            module_array.append(file)
+    return module_array
 
 
 ### 读取build.gradle中配置的（当前工程中的）依赖项
