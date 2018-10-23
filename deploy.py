@@ -241,9 +241,11 @@ def read_modules(sys):
                 if value == '-h':
                     dump_help()
                 elif value == '-c':
-                    g_reverse = 0
+                    # g_reverse = 0
+                    g_reverse = 1
                 elif value == '-a':
                     g_deploy_all = True
+                    g_reverse = 0
                 elif value == '-d':
                     g_log_result = True
                 elif value == '-r':
