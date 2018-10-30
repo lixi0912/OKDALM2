@@ -14,6 +14,7 @@ linePattern = re.compile(r'(((group)|(name)|(version)|(\w+))\s*\:([^\)]*)){3}')
 linePattern2 = re.compile(r'[\'\"].*[\'\"]')
 artifactIdPattern = re.compile(r'name[^\,]+')
 
+
 ###读取指定工程中的依赖关系
 ###读取范围：在artifactory_version.properties中声明过的module
 ###读取内容：groupId为gradle.properties中声明的maven_groupId
@@ -140,11 +141,10 @@ def read_dependency_line(line):
 ### 反向查找指定module的依赖（直接和间接依赖该module的module）
 def find_reverse_dependency_module(modules, name, rev_modules):
     for module_name in modules:
-        if name in modules[module_name]:
+        if name in modules[module_name] and module_name != name:
             if module_name not in rev_modules:
                 rev_modules.append(module_name)
-            if module_name != name:
-                find_reverse_dependency_module(modules, module_name, rev_modules)
+            find_reverse_dependency_module(modules, module_name, rev_modules)
 
 
 # 读取工程中的依赖关系
