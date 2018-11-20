@@ -59,6 +59,11 @@ def getAarFilePath(dir, projectName) {
 def SNAPSHOT_MAVEN_TYPE = 'snapshot'
 //configure(allprojects.findAll { it.name.startsWith('lib_') || it.name.equals('pullToRefresh_Lib') }) {//所有名称以lib_开头的module
 subprojects {
+    File deployFile = new File(project.projectDir, "deploy.py")
+    if (deployFile.exists()) {
+        return
+    }
+
     //artifactory相关
     apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'maven-publish'
