@@ -12,19 +12,7 @@
 - build.gradle (root)
     - apply from: "deploy/artifactory.gradle"        
     - classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5"
-- gradle.properties (root) add maven account info
-        <pre>
-        maven_groupId=your.group.id
-        artifactory_user=admin
-        artifactory_password=password
-        artifactory_contextUrl=http://localhost:8081/artifactory
-        artifactory_snapshot_repoKey=libs-snapshot-local
-        artifactory_release_repoKey=libs-release-local
-        version_prefix=
-        </pre>
 - copy artifactory_version.properties to root_project dir
-- settings.gradle (root) 
-    - include 'deploy'
 
 ### Optional
 - special pom dependencies configuration (default using deploy/pom.properties)
@@ -32,8 +20,7 @@
   
 ### Publish
 - open Terminal
-  - cd deploy
-  - python deploy.py [-c] [-l] [-a] [-u] [-r] [-d] [-i] module_name
+  - python deploy/deploy.py [-c] [-l] [-a] [-u] [-r] [-d] [-i] module_name
       - [-l] publish to local maven
       - [-u] force upgrade
       - [-a] deploy all
@@ -44,13 +31,16 @@
 
 ### Future
 
- - [ ] ~~auto update dependency version~~
+ - [ x ] ~~auto update dependency version~~
     <pre>
     use compile "your.group.id:parent-lib:$parent-lib" instead
     </pre>
 
- - [ ] child version depends on parent version 
+ - [ ] child version depends on parent version
     <pre>
     artifactory_version.properties
         children-lib = $parent-lib
+    </pre>
+    <pre>
+    upgrade parent version will reverse upgrade his children version
     </pre>
