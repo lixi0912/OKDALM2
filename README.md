@@ -41,6 +41,3 @@
     artifactory_version.properties
         children-lib = $parent-lib
     </pre>
-    <pre>
-    upgrade parent version will reverse upgrade his children version
-    </pre>
