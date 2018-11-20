@@ -18,6 +18,15 @@
 - special pom dependencies configuration (default using deploy/pom.properties)
   - copy pom.properties to root_project dir
   
+- gradle.properties (root) add maven account info
+  maven_groupId=your.group.id
+  artifactory_user=admin
+  artifactory_password=password
+  artifactory_contextUrl=http://localhost:8081/artifactory
+  artifactory_snapshot_repoKey=libs-snapshot-local
+  artifactory_release_repoKey=libs-release-local
+  version_prefix=
+  
 ### Publish
 - open Terminal
   - python deploy/deploy.py [-c] [-l] [-a] [-u] [-r] [-d] [-i] module_name
