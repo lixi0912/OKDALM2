@@ -19,6 +19,7 @@
   - copy pom.properties to root_project dir
   
 - gradle.properties (root) add maven account info
+  <pre>
   maven_groupId=your.group.id
   artifactory_user=admin
   artifactory_password=password
@@ -26,6 +27,7 @@
   artifactory_snapshot_repoKey=libs-snapshot-local
   artifactory_release_repoKey=libs-release-local
   version_prefix=
+  </pre>
   
 ### Publish
 - open Terminal
