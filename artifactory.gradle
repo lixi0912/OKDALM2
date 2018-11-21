@@ -1,12 +1,37 @@
 buildscript {
+    ext.loadFile = { fileName ->
+        File result = file("$rootDir.path/$fileName")
+        if (!result.exists()) {
+            result = file("$rootDir.path/deploy/$fileName")
+        }
+        return result
+    }
+
+    ext.loadProperties = { fileName, defaultPros = { null } ->
+        Properties props = new Properties(defaultPros.call())
+        File file = loadFile(fileName)
+        if (file.exists()) {
+            props.load(new FileInputStream(file))
+        }
+        return props
+    }
     repositories {
         jcenter()
         maven { url 'http://repo.jfrog.org/artifactory/gradle-plugins' }
         maven {
             url "https://plugins.gradle.org/m2/"
         }
-        maven { url "${artifactory_contextUrl}/${artifactory_snapshot_repoKey}" }
-        maven { url "${artifactory_contextUrl}/${artifactory_release_repoKey}" }
+        Properties props = loadProperties("gradle.properties")
+        if (props.getProperty("artifactory_contextUrl") != null) {
+            maven {
+                url "${props.getProperty("artifactory_contextUrl")}/${props.getProperty("artifactory_snapshot_repoKey")}"
+            }
+            maven {
+                url "${props.getProperty("artifactory_contextUrl")}/${props.getProperty("artifactory_release_repoKey")}"
+            }
+        }
+
+
     }
     dependencies {
         classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5"
@@ -34,33 +59,34 @@ def getAarFilePath(dir, projectName) {
 def SNAPSHOT_MAVEN_TYPE = 'snapshot'
 //configure(allprojects.findAll { it.name.startsWith('lib_') || it.name.equals('pullToRefresh_Lib') }) {//所有名称以lib_开头的module
 subprojects {
+    File deployFile = new File(project.projectDir, "deploy.py")
+    if (deployFile.exists()) {
+        return
+    }
+
     //artifactory相关
     apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'maven-publish'
 
     //读取module的version
-    Properties props = new Properties()
-    File propFile = file(rootDir.path + "/artifactory_version.properties")
-    if (propFile.exists()) {
-        props.load(new FileInputStream(propFile))
+    Properties props = loadProperties("artifactory_version.properties")
+    Properties gradlePros = loadProperties("gradle.properties") {
+        Properties defaultPros = new Properties()
+        defaultPros.setProperty("maven_groupId", "your.group.id")
+        defaultPros.setProperty("artifactory_contextUrl", "http://localhost:8081/artifactory")
+        defaultPros.setProperty("artifactory_snapshot_repoKey", "libs-snapshot-local")
+        defaultPros.setProperty("artifactory_release_repoKey", "libs-release-local")
+        defaultPros.setProperty("artifactory_user", "admin")
+        defaultPros.setProperty("artifactory_password", "password")
+        defaultPros
     }
 
     def maven_type = props.getProperty(project.name + 'MavenType', props.getProperty("maven_type"))
     def versionType = maven_type == SNAPSHOT_MAVEN_TYPE ? '-SNAPSHOT' : ''
     def artifactName = props.getProperty(project.name + 'ArtifactId', project.name)
-    def artifactGroupId = props.getProperty(project.name + 'GroupId', maven_groupId)
+    def artifactGroupId = props.getProperty(project.name + 'GroupId', gradlePros.getProperty("maven_groupId"))
 
-
-
-    Properties pomProps = new Properties()
-    File pomFile = file(rootDir.path + "/pom.properties")
-    if (!pomFile.exists()) {
-        pomFile = file(rootDir.path + "/deploy/pom.properties")
-    }
-    if (pomFile.exists()) {
-        pomProps.load(new FileInputStream(pomFile))
-    }
-
+    Properties pomProps = loadProperties("pom.properties")
     publishing {
         publications {
             aar(MavenPublication) {
@@ -137,13 +163,13 @@ subprojects {
         }
     }
     artifactory {//artifactory配置
-        contextUrl = "${artifactory_contextUrl}"
+        contextUrl = gradlePros.getProperty("artifactory_contextUrl")
         //The base Artifactory URL if not overridden by the publisher/resolver
         publish {
             repository {
-                repoKey = maven_type == SNAPSHOT_MAVEN_TYPE ? artifactory_snapshot_repoKey : artifactory_release_repoKey
-                username = "${artifactory_user}"
-                password = "${artifactory_password}"
+                repoKey = maven_type == SNAPSHOT_MAVEN_TYPE ? gradlePros.getProperty("artifactory_snapshot_repoKey") : gradlePros.getProperty("artifactory_release_repoKey")
+                username = gradlePros.getProperty("artifactory_user")
+                password = gradlePros.getProperty("artifactory_password")
                 maven = true
             }
             defaults {
