@@ -98,21 +98,24 @@ def do_deploy(lib_module_name, is_reverse):
         print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
         if is_reverse:
             modules = module_dependencies.get_all_reverse_dependencies(lib_module_name)
-            print 'start deploying reverse dependency modules:'
-            print modules
-            success_modules = []
-            failed_modules = []
-            for m in modules:
-                version_level_up(m)
-                if do_deploy(m, 0) == 0:
-                    success_modules.append(m)
-                else:
-                    failed_modules.append(m)
-            print 'deploying reverse dependency modules finished.'
-            print '\nsuccess_modules:' + str(len(success_modules))
-            print success_modules
-            print 'failed_modules:' + str(len(failed_modules))
-            print failed_modules
+            if len(modules)>0:
+                print 'start deploying reverse dependency modules:'
+                print modules
+                success_modules = []
+                failed_modules = []
+                for m in modules:
+                    version_level_up(m)
+                    if do_deploy(m, 0) == 0:
+                        success_modules.append(m)
+                    else:
+                        failed_modules.append(m)
+                print 'deploying reverse dependency modules finished.'
+                print '\nsuccess_modules:' + str(len(success_modules))
+                print success_modules
+                print 'failed_modules:' + str(len(failed_modules))
+                print failed_modules
+            else :
+                print 'NOTE: no reverse dependency modules'
         else:
             print 'NOTE: no reverse dependency modules'
 
