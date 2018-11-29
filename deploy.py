@@ -131,12 +131,7 @@ def do_deploy(lib_module_name, is_reverse):
 
     return result
 
-
-def do_exec(command_str, lib_module_name):
-    return do_exec(command_str, lib_module_name, True)
-
-
-def do_exec(command_str, lib_module_name, log_err):
+def do_exec(command_str, lib_module_name, log_err = True):
     command_str = format_debug_if_need(command_str)
     command = command_str.format(get_command(), lib_module_name)
     print command
