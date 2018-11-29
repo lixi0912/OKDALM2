@@ -62,14 +62,21 @@ def format_debug_if_need(command_str):
 
 def do_deploy_to_maven_local(lib_module_name):
     if not g_to_local:
-        return
+        return -1
     ## 先编译成 aar
     command_str = '{0} :{1}:clean :{1}:assembleRelease '
-    do_exec(command_str, lib_module_name)
+    operation = do_exec(command_str, lib_module_name, False)
+    if operation != 0:
+        command_str = '{0} :{1}:clean :{1}:assemble '
+        operation = do_exec(command_str, lib_module_name)
 
-    ## push 到 maven local
-    command_str = '{0} :{1}:publishToMavenLocal'
-    return do_exec(command_str, lib_module_name)
+    if operation != 0:
+        print "ERROR:artifactory error %d. please check module dependencies" % result
+        return operation
+    else:
+        ## push 到 maven local
+        command_str = '{0} :{1}:publishToMavenLocal'
+        return do_exec(command_str, lib_module_name)
 
 
 def do_deploy(lib_module_name, is_reverse):
@@ -80,6 +87,9 @@ def do_deploy(lib_module_name, is_reverse):
     else:
         command_str = '{0} :{1}:clean :{1}:assembleRelease :{1}:generatePomFileForAarPublication :{1}:artifactoryPublish'
         result = do_exec(command_str, lib_module_name)
+        if result != 0:
+            command_str = '{0} :{1}:clean :{1}:assemble :{1}:generatePomFileForAarPublication :{1}:artifactoryPublish'
+            result = do_exec(command_str, lib_module_name)
 
     if result != 0:
         print "ERROR:artifactory error %d. please check module dependencies" % result
@@ -98,7 +108,7 @@ def do_deploy(lib_module_name, is_reverse):
         print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
         if is_reverse:
             modules = module_dependencies.get_all_reverse_dependencies(lib_module_name)
-            if len(modules)>0:
+            if len(modules) > 0:
                 print 'start deploying reverse dependency modules:'
                 print modules
                 success_modules = []
@@ -114,7 +124,7 @@ def do_deploy(lib_module_name, is_reverse):
                 print success_modules
                 print 'failed_modules:' + str(len(failed_modules))
                 print failed_modules
-            else :
+            else:
                 print 'NOTE: no reverse dependency modules'
         else:
             print 'NOTE: no reverse dependency modules'
@@ -123,6 +133,10 @@ def do_deploy(lib_module_name, is_reverse):
 
 
 def do_exec(command_str, lib_module_name):
+    return do_exec(command_str, lib_module_name, True)
+
+
+def do_exec(command_str, lib_module_name, log_err):
     command_str = format_debug_if_need(command_str)
     command = command_str.format(get_command(), lib_module_name)
     print command
@@ -130,7 +144,7 @@ def do_exec(command_str, lib_module_name):
         result = os.system(command)
     else:
         result, log = commands.getstatusoutput(command)
-        if result != 0:
+        if result != 0 and log_err:
             print log
     return result
 
@@ -160,7 +174,7 @@ def version_level_up(lib_module_name):
                 last_int_start -= 1
             else:
                 break
-        elif last_int_start == last_int_end -1 :
+        elif last_int_start == last_int_end - 1:
             last_int_end = last_int_start
             if last_int_start > 0:
                 last_int_start -= 1
@@ -171,7 +185,7 @@ def version_level_up(lib_module_name):
             break
     if 0 <= last_int_start < last_int_end:
 
-        last_number = dv[last_int_start:last_int_end ]
+        last_number = dv[last_int_start:last_int_end]
         upgraded_version_number = str(int(last_number) + 1)
 
         version = dv[:last_int_start] + upgraded_version_number + dv[last_int_end:]

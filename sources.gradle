@@ -1,0 +1,9 @@
+// copy to app build file
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    classifier = 'sources'
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from groovydoc.destinationDir
+}

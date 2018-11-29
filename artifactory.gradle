@@ -57,8 +57,11 @@ def getAarFilePath(dir, projectName) {
 }
 
 def SNAPSHOT_MAVEN_TYPE = 'snapshot'
+
 //configure(allprojects.findAll { it.name.startsWith('lib_') || it.name.equals('pullToRefresh_Lib') }) {//所有名称以lib_开头的module
 subprojects {
+
+
     File deployFile = new File(project.projectDir, "deploy.py")
     if (deployFile.exists()) {
         return
@@ -89,77 +92,101 @@ subprojects {
     Properties pomProps = loadProperties("pom.properties")
     publishing {
         publications {
-            aar(MavenPublication) {
+            if (gradlePros.containsKey("publishJar")) {
+                mavenJava(MavenPublication) {
 
+                    groupId artifactGroupId
+                    artifactId artifactName
 
-                groupId artifactGroupId
-                artifactId artifactName
+                    def libVersion = props.getProperty(project.name)
+                    if (libVersion == null)
+                        return
+                    libVersion += versionType
 
-                def libVersion = props.getProperty(project.name)
-                if (libVersion == null)
-                    return
-                libVersion += versionType
+                    version = libVersion
 
-                version = libVersion
+                    println "----------------------------------------"
+                    println "|        " + libVersion + "        |"
+                    println "----------------------------------------"
 
-                println "----------------------------------------"
-                println "|        " + libVersion + "        |"
-                println "----------------------------------------"
-
-                // Tell maven to prepare the generated "*.aar" file for publishing
-                File file = new File(getAarFilePath(buildDir, project.getName()))
-                if (file.exists()) {
-                    artifact(file.getPath())
-                } else {
-                    artifact(getAarFilePath(buildDir, artifactName))
+                    artifact sourcesJar
+                    artifact jar
+//                    artifact javadocJar
                 }
+            } else {
+                aar(MavenPublication) {
 
-                //The publication doesn't know about our dependencies, so we have to manually add them to the pom
-                pom.withXml {
-                    //Creating additional node for dependencies
-                    def dependenciesNode = asNode().appendNode('dependencies')
+                    groupId artifactGroupId
+                    artifactId artifactName
 
-                    //Defining configuration names from which dependencies will be taken (debugCompile or releaseCompile and compile)
-                    project.configurations.each { configuration ->
+                    def libVersion = props.getProperty(project.name)
+                    if (libVersion == null)
+                        return
+                    libVersion += versionType
 
-                        if (!pomProps.containsKey(configuration.name) || configuration.dependencies.isEmpty()) {
+                    version = libVersion
+
+                    println "----------------------------------------"
+                    println "|        " + libVersion + "        |"
+                    println "----------------------------------------"
+
+                    // Tell maven to prepare the generated "*.aar" file for publishing
+                    File file = new File(getAarFilePath(buildDir, project.getName()))
+                    if (file.exists()) {
+                        artifact(file.getPath())
+                    } else {
+                        artifact(getAarFilePath(buildDir, artifactName))
+                    }
+
+                    //The publication doesn't know about our dependencies, so we have to manually add them to the pom
+                    pom.withXml {
+                        //Creating additional node for dependencies
+                        def dependenciesNode = asNode().appendNode('dependencies')
+
+                        //Defining configuration names from which dependencies will be taken (debugCompile or releaseCompile and compile)
+                        project.configurations.each { configuration ->
+
+                            if (!pomProps.containsKey(configuration.name) || configuration.dependencies.isEmpty()) {
 //                            println "----> skip configuration: $configuration.name"
-                            return
-                        }
-                        configuration.dependencies.each {
-                            if (it.group == null || it.name == null ||
-                                    it.group == project.parent.name) {
                                 return
                             }
+                            configuration.dependencies.each {
+                                if (it.group == null || it.name == null ||
+                                        it.group == project.parent.name) {
+                                    return
+                                }
 
-                            println "========================================"
-                            println "append dependency to pom"
-                            println "<dependency>"
-                            println "  <groupId>" + it.group + "</groupId>"
-                            println "  <artifactId>" + it.name + "</artifactId>"
-                            println "  <version>" + it.version + "</version>"
-                            println "  <scope>" + configuration.name + "</scope>"
-                            println "</dependency>"
+                                println "========================================"
+                                println "append dependency to pom"
+                                println "<dependency>"
+                                println "  <groupId>" + it.group + "</groupId>"
+                                println "  <artifactId>" + it.name + "</artifactId>"
+                                println "  <version>" + it.version + "</version>"
+                                println "  <scope>" + configuration.name + "</scope>"
+                                println "</dependency>"
 
-                            def dependencyNode = dependenciesNode.appendNode('dependency')
-                            dependencyNode.appendNode('groupId', it.group)
-                            dependencyNode.appendNode('artifactId', it.name)
-                            dependencyNode.appendNode('version', it.version)
-                            dependencyNode.appendNode('scope', configuration.name)
+                                def dependencyNode = dependenciesNode.appendNode('dependency')
+                                dependencyNode.appendNode('groupId', it.group)
+                                dependencyNode.appendNode('artifactId', it.name)
+                                dependencyNode.appendNode('version', it.version)
+                                dependencyNode.appendNode('scope', configuration.name)
 
-                            //If there are any exclusions in dependency
-                            if (it.excludeRules.size() > 0) {
-                                def exclusionsNode = dependencyNode.appendNode('exclusions')
-                                it.excludeRules.each { rule ->
-                                    def exclusionNode = exclusionsNode.appendNode('exclusion')
-                                    exclusionNode.appendNode('groupId', rule.group)
-                                    exclusionNode.appendNode('artifactId', rule.module)
+                                //If there are any exclusions in dependency
+                                if (it.excludeRules.size() > 0) {
+                                    def exclusionsNode = dependencyNode.appendNode('exclusions')
+                                    it.excludeRules.each { rule ->
+                                        def exclusionNode = exclusionsNode.appendNode('exclusion')
+                                        exclusionNode.appendNode('groupId', rule.group)
+                                        exclusionNode.appendNode('artifactId', rule.module)
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
             }
+
         }
     }
     artifactory {//artifactory配置
@@ -174,13 +201,18 @@ subprojects {
             }
             defaults {
                 // Tell the Artifactory Plugin which artifacts should be published to Artifactory.
-                publications('aar')
+                if (gradlePros.containsKey("publishJar")) {
+                    publications('mavenJava')
+                } else {
+                    publications('aar')
+                }
                 publishArtifacts = true
 
                 // Properties to be attached to the published artifacts.
                 properties = ['qa.level': 'basic', 'dev.team': 'core']
                 // Publish generated POM files to Artifactory (true by default)
-                publishPom = true //Publish generated POM files to Artifactory (true by default)
+                publishPom = true
+                //Publish generated POM files to Artifactory (true by default)
                 publishIvy = false
                 //Publish generated Ivy descriptor files to Artifactory (true by default)
             }
