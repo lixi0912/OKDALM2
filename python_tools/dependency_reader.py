@@ -33,8 +33,6 @@ class Dependency:
         ### 适配如 api project(':lib')
         module_array = get_deploy_modules(root_dir, version_properties)
 
-        print module_array
-
         self.root_dir = root_dir
         # 过滤含有build.gradle文件的文件夹（为module）,并解析出build.gradle中对当前工程中各module的依赖项
         self.modules = {}
