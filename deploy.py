@@ -82,14 +82,15 @@ def do_deploy_to_maven_local(lib_module_name):
 def do_deploy(lib_module_name, is_reverse):
     print '--------------     [ %s ] deploy: start     ---------------------' % lib_module_name
 
+    deploy_module_name = wrap_module_name(lib_module_name)
     if g_to_local:
-        result = do_deploy_to_maven_local(lib_module_name)
+        result = do_deploy_to_maven_local(deploy_module_name)
     else:
         command_str = '{0} :{1}:clean :{1}:assembleRelease :{1}:generatePomFileForAarPublication :{1}:artifactoryPublish'
-        result = do_exec(command_str, lib_module_name)
+        result = do_exec(command_str, deploy_module_name)
         if result != 0:
             command_str = '{0} :{1}:clean :{1}:assemble :{1}:generatePomFileForAarPublication :{1}:artifactoryPublish'
-            result = do_exec(command_str, lib_module_name)
+            result = do_exec(command_str, deploy_module_name)
 
     if result != 0:
         print "ERROR:artifactory error %d. please check module dependencies" % result
@@ -131,7 +132,22 @@ def do_deploy(lib_module_name, is_reverse):
 
     return result
 
-def do_exec(command_str, lib_module_name, log_err = True):
+
+def wrap_module_name(lib_module_name):
+    if version_properties.has_key(lib_module_name + "Under"):
+        return version_properties.get(lib_module_name + "Under") + ":" + lib_module_name
+    else:
+        return lib_module_name
+
+
+def unwrap_module_name(lib_module_name):
+    name_array = lib_module_name.split(":")
+    if len(name_array) > 0:
+        return name_array[1]
+    return lib_module_name
+
+
+def do_exec(command_str, lib_module_name, log_err=True):
     command_str = format_debug_if_need(command_str)
     command = command_str.format(get_command(), lib_module_name)
     print command
@@ -302,6 +318,7 @@ def deploy_main(lib_module_name, is_reverse):
     if version_properties.has_key(lib_module_name):
         rewrite_module_maven_type(lib_module_name)
         version_level_up(lib_module_name)
+
         result = do_deploy(lib_module_name, is_reverse)
     else:
         print "\n\t\tDEPLOY SKIP: module \":%s\" is undefined in %s\n" % (

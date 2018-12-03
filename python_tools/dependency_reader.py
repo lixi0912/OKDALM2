@@ -33,6 +33,8 @@ class Dependency:
         ### 适配如 api project(':lib')
         module_array = get_deploy_modules(root_dir, version_properties)
 
+        print module_array
+
         self.root_dir = root_dir
         # 过滤含有build.gradle文件的文件夹（为module）,并解析出build.gradle中对当前工程中各module的依赖项
         self.modules = {}
@@ -40,11 +42,11 @@ class Dependency:
         self.pattern = re.compile(
             r'.*(ompile|pi|mplementation).*((' + gradle_properties.get('maven_groupId') + ')|(:(' + '|'.join(
                 module_array) + '):)).*')
-        for file in module_array:
-            path = os.path.join(root_dir, file)
+        for module_name in module_array:
+            path = os.path.join(root_dir, module_name)
             gradle = os.path.join(path, 'build.gradle')
             if os.path.isdir(path) and os.path.isfile(gradle):
-                self.modules[file] = read_gradle_dependencies(self.pattern, gradle, module_array)
+                self.modules[module_name] = read_gradle_dependencies(self.pattern, gradle, module_array)
         self.sorted_modules = self.sort_by_dependency_relationship()
 
     # 获取直接或间接依赖name的所有module
@@ -98,14 +100,20 @@ class Dependency:
 #  通过遍历文件目录名来匹配 module，以及 module 特殊配置了 artifactId 的 module
 #  比如 module 对应的目录是 lib, version_properties 中配置 lib 版本及 libArtifactId = specialName
 #  那么在后续逆向循环遍历的时候应该需要查找出 specialName 所对应的 module
-def get_deploy_modules(root_dir, version_properties):
+def get_deploy_modules(root_dir, version_properties, down_search=True):
     module_array = []
     for file in os.listdir(root_dir):
         if version_properties.has_key(file):
             module_array.append(file)
+
         artifact_key = file + 'ArtifactId'
         if version_properties.has_key(artifact_key):
             module_array.append(version_properties.get(artifact_key))
+
+        if os.path.isdir(file) and down_search:
+            sub_array = get_deploy_modules(file, version_properties, False)
+            for sub_item in sub_array:
+                module_array.append(sub_item)
     return module_array
 
 
@@ -159,6 +167,7 @@ def read_dependency_line(line):
             return line.split(':')[1].strip()
     else:
         return ''
+
 
 ### 反向查找指定module的依赖（直接和间接依赖该module的module）
 # 如 lib:[]  lib3:[lib2]  lib2:[lib]
