@@ -93,37 +93,41 @@ def do_deploy(lib_module_name, is_reverse):
             result = do_exec(command_str, deploy_module_name)
 
     if result != 0:
-        print "ERROR:artifactory error %d. please check module dependencies" % result
+        print "ERROR: artifactory error %d. please check module dependencies" % result
     else:
         deploy_version = get_deploy_version(lib_module_name)
         gradle_version = get_gradle_version(lib_module_name)
         # 如果本次发布的版本号与之前一致，则不升级传递依赖的module版本号
         if gradle_version == deploy_version:
-            is_reverse = 0
             print 'module %s:%s:%s refreshed' % (group_id, lib_module_name, deploy_version)
+            print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
+            if is_reverse:
+                print '\nNOTE: version no change so skip the reverse deploy version '
+            return result
         else:
             # 修改gradle.properties文件中的版本号（=module刚发布成功的版本号=被依赖的版本号）
             gradle_properties.put(gradle_key_prefix + lib_module_name, deploy_version)
             print 'modify gradle.properties: [%s: %s -> %s]' % (
                 gradle_key_prefix + lib_module_name, gradle_version, deploy_version)
-        print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
+            print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
+
         if is_reverse:
-            modules = module_dependencies.get_all_reverse_dependencies(lib_module_name)
-            if len(modules) > 0:
+            reverse_modules = module_dependencies.get_all_reverse_dependencies(lib_module_name)
+            if len(reverse_modules) > 0:
                 print 'start deploying reverse dependency modules:'
-                print modules
+                print reverse_modules
                 success_modules = []
                 failed_modules = []
-                for m in modules:
+                for m in reverse_modules:
                     version_level_up(m)
                     if do_deploy(m, 0) == 0:
                         success_modules.append(m)
                     else:
                         failed_modules.append(m)
                 print 'deploying reverse dependency modules finished.'
-                print '\nsuccess_modules:' + str(len(success_modules))
+                print '\nsuccess_modules: %d' % len(success_modules)
                 print success_modules
-                print 'failed_modules:' + str(len(failed_modules))
+                print 'failed_modules: %d' % len(failed_modules)
                 print failed_modules
             else:
                 print 'NOTE: no reverse dependency modules'
@@ -269,13 +273,14 @@ def read_modules(sys):
                 if value == '-h':
                     dump_help()
                 elif value == '-c':
-                    # g_reverse = 0
-                    g_reverse = 1
+                    g_reverse = 0
                 elif value == '-a':
                     g_deploy_all = True
                     g_reverse = 0
                 elif value == '-d':
                     g_log_result = True
+                elif value == '--r':
+                    g_reverse = 1
                 elif value == '-r':
                     g_force_snap = None
                 elif value == '-i':
@@ -287,15 +292,13 @@ def read_modules(sys):
             else:
                 break
             index += 1
-    result = ''
+    result = []
     if not g_deploy_all:
-        if arg_len > index:
-            result = sys.argv[index]  # 要deploy的module名称
-            index += 1
-        elif index > 0:
-            g_deploy_all = True
-        else:
+        for i in range(index, arg_len):
+            result.append(sys.argv[i])  # 要deploy的module名称
+        if len(result) == 0:
             dump_help()
+
     return result
 
 
@@ -328,7 +331,7 @@ def deploy_main(lib_module_name, is_reverse):
 
 ### 直接调用打球py文件
 if __name__ == '__main__':
-    module_name = read_modules(sys)
+    modules = read_modules(sys)
 
     # windows环境执行commands.getstatusoutput(command)时报错
     if platform.system() == 'Windows':
@@ -349,23 +352,26 @@ if __name__ == '__main__':
 
     try:
         if g_deploy_all:  # deploy所有在artifactory_version.properties中配置的module
-            print 'deploy below modules:'
-            print module_dependencies.sorted_modules
-            success = []
-            failed = []
-            for module in module_dependencies.sorted_modules:  # 按照依赖关系的顺序进行发布
-                if module not in success:
-                    if deploy_main(module, 0) == 0:
-                        success.append(module)
-                    else:
-                        failed.append(module)
-            print '\ndeploy finished!'
-            print 'success:' + str(len(success))
-            print success
-            print 'failed:' + str(len(failed))
-            print failed
-        else:
-            deploy_main(module_name, g_reverse)
+            modules = module_dependencies.sorted_modules
+
+        print 'deploy below modules:'
+        print modules
+        success = []
+        failed = []
+        for module in modules:  # 按照依赖关系的顺序进行发布
+            if module not in success:
+                if deploy_main(module, g_reverse) == 0:
+                    success.append(module)
+                else:
+                    failed.append(module)
+            else:
+                print "skip success:" + module
+        print '\ndeploy finished!'
+        print 'success:' + str(len(success))
+        print success
+        print 'failed:' + str(len(failed))
+        print failed
+
     except Exception, e:
         print traceback.format_exc()
 
