@@ -297,7 +297,7 @@ def read_modules(sys):
         for i in range(index, arg_len):
             result.append(sys.argv[i])  # 要deploy的module名称
         if len(result) == 0:
-            dump_help()
+            g_deploy_all = True
 
     return result
 
