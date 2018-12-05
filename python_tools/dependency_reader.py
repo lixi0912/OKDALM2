@@ -40,11 +40,11 @@ class Dependency:
         self.pattern = re.compile(
             r'.*(ompile|pi|mplementation).*((' + gradle_properties.get('maven_groupId') + ')|(:(' + '|'.join(
                 module_array) + '):)).*')
-        for module_name in module_array:
-            path = os.path.join(root_dir, module_name)
-            gradle = os.path.join(path, 'build.gradle')
-            if os.path.isdir(path) and os.path.isfile(gradle):
-                self.modules[module_name] = read_gradle_dependencies(self.pattern, gradle, module_array)
+
+        gradle_array = get_all_gradle_path(version_properties, root_dir, module_array)
+        for module_name, gradle in gradle_array.items():
+            self.modules[module_name] = read_gradle_dependencies(self.pattern, module_name, gradle, module_array)
+
         self.sorted_modules = self.sort_by_dependency_relationship()
 
     # 获取直接或间接依赖name的所有module
@@ -94,6 +94,20 @@ class Dependency:
         return sorted_modules
 
 
+def get_all_gradle_path(version_properties, root_dir, module_array):
+    gradle_array = {}
+    for module_name in module_array:
+        if version_properties.has_key(module_name + 'Under'):
+            temp_path = os.path.join(root_dir, version_properties.get(module_name + 'Under'))
+            path = os.path.join(temp_path, module_name)
+        else:
+            path = os.path.join(root_dir, module_name)
+        gradle_file = os.path.join(path, 'build.gradle')
+        if os.path.isdir(path) and os.path.isfile(gradle_file):
+            gradle_array[module_name] = gradle_file
+    return gradle_array
+
+
 ### 查找所有在 version_properties 中配置的 module
 #  通过遍历文件目录名来匹配 module，以及 module 特殊配置了 artifactId 的 module
 #  比如 module 对应的目录是 lib, version_properties 中配置 lib 版本及 libArtifactId = specialName
@@ -120,7 +134,7 @@ def get_deploy_modules(root_dir, version_properties, down_search=True):
 # 比如 project --- lib
 #             ┗--- lib2
 # 在 lib2 dependencies 中依赖了 lib, 那么此处将返回 lib，无关的依赖不会被返回
-def read_gradle_dependencies(pattern, gradle, module_array):
+def read_gradle_dependencies(pattern, module_name, gradle, module_array):
     try:
         pro_file = open(gradle, 'r')
         list = []
@@ -134,7 +148,7 @@ def read_gradle_dependencies(pattern, gradle, module_array):
             else:
                 if pattern.search(line) and not line.startswith('//'):
                     name = read_dependency_line(line)
-                    if name != '' and name in module_array and name not in list:
+                    if name != '' and name != module_name and name in module_array and name not in list:
                         list.append(name)
     except Exception, e:
         raise e
