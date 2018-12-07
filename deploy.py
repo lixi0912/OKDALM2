@@ -19,7 +19,7 @@ g_upgrade = None
 g_deploy_all = None
 g_in_cur_dir = False
 g_force_snap = True
-g_reverse = 1
+g_reverse = 0
 
 
 def dump_help():
@@ -116,19 +116,17 @@ def do_deploy(lib_module_name, is_reverse):
             if len(reverse_modules) > 0:
                 print 'start deploying reverse dependency modules:'
                 print reverse_modules
-                success_modules = []
-                failed_modules = []
                 for m in reverse_modules:
                     version_level_up(m)
                     if do_deploy(m, 0) == 0:
-                        success_modules.append(m)
+                        success.append(m)
                     else:
-                        failed_modules.append(m)
+                        failed.append(m)
                 print 'deploying reverse dependency modules finished.'
-                print '\nsuccess_modules: %d' % len(success_modules)
-                print success_modules
-                print 'failed_modules: %d' % len(failed_modules)
-                print failed_modules
+                print '\nsuccess_modules: %d' % len(success)
+                print success
+                print 'failed_modules: %d' % len(failed)
+                print failed
             else:
                 print 'NOTE: no reverse dependency modules'
         else:
