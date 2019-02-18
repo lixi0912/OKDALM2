@@ -97,10 +97,13 @@ def do_deploy(lib_module_name, is_reverse):
     else:
         deploy_version = get_deploy_version(lib_module_name)
         gradle_version = get_gradle_version(lib_module_name)
+
+        artifact_id = version_properties.get(make_artifact_id_key(deploy_module_name),
+                                       deploy_module_name)
         # 如果本次发布的版本号与之前一致，则不升级传递依赖的module版本号
         if gradle_version == deploy_version:
-            print 'module %s:%s:%s refreshed' % (group_id, lib_module_name, deploy_version)
-            print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
+            print 'module %s:%s:%s refreshed' % (group_id, artifact_id, deploy_version)
+            print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, artifact_id, deploy_version)
             if is_reverse:
                 print '\nNOTE: version no change so skip the reverse deploy version '
             return result
@@ -109,7 +112,7 @@ def do_deploy(lib_module_name, is_reverse):
             gradle_properties.put(gradle_key_prefix + lib_module_name, deploy_version)
             print 'modify gradle.properties: [%s: %s -> %s]' % (
                 gradle_key_prefix + lib_module_name, gradle_version, deploy_version)
-            print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, lib_module_name, deploy_version)
+            print 'DEPLOY SUCCESS: %s:%s:%s' % (group_id, artifact_id, deploy_version)
 
         if is_reverse:
             reverse_modules = module_dependencies.get_all_reverse_dependencies(lib_module_name)
@@ -229,6 +232,10 @@ def force_release():
 
 def make_maven_key(lib_module_name):
     return lib_module_name + 'MavenType'
+
+
+def make_artifact_id_key(lib_module_name):
+    return lib_module_name + 'ArtifactId'
 
 
 def get_maven_type(lib_module_name):
