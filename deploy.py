@@ -19,6 +19,7 @@ g_upgrade = None
 g_deploy_all = None
 g_in_cur_dir = False
 g_force_snap = True
+g_bintray_upload = False
 g_reverse = 0
 
 
@@ -85,6 +86,12 @@ def do_deploy(lib_module_name, is_reverse):
     deploy_module_name = wrap_module_name(lib_module_name)
     if g_to_local:
         result = do_deploy_to_maven_local(deploy_module_name)
+    elif g_bintray_upload:
+        command_str = '{0} :{1}:clean :{1}:assembleRelease :{1}:bintrayUpload'
+        result = do_exec(command_str, deploy_module_name)
+        if result != 0:
+            command_str = '{0} :{1}:clean :{1}:assemble :{1}:generatePomFileForAarPublication :{1}:bintrayUpload'
+            result = do_exec(command_str, deploy_module_name)
     else:
         command_str = '{0} :{1}:clean :{1}:assembleRelease :{1}:generatePomFileForAarPublication :{1}:artifactoryPublish'
         result = do_exec(command_str, deploy_module_name)
@@ -99,7 +106,7 @@ def do_deploy(lib_module_name, is_reverse):
         gradle_version = get_gradle_version(lib_module_name)
 
         artifact_id = version_properties.get(make_artifact_id_key(deploy_module_name),
-                                       deploy_module_name)
+                                             deploy_module_name)
         # 如果本次发布的版本号与之前一致，则不升级传递依赖的module版本号
         if gradle_version == deploy_version:
             print 'module %s:%s:%s refreshed' % (group_id, artifact_id, deploy_version)
@@ -266,6 +273,7 @@ def read_modules(sys):
     global g_upgrade
     global g_reverse
     global g_log_result
+    global g_bintray_upload
 
     index = 1
     arg_len = len(sys.argv)
@@ -294,6 +302,8 @@ def read_modules(sys):
                     g_to_local = True
                 elif value == '-u':
                     g_upgrade = True
+                elif value == '-p':
+                    g_bintray_upload = True
             else:
                 break
             index += 1
