@@ -34,7 +34,7 @@ buildscript {
 
     }
     dependencies {
-        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5"
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.9.5"
     }
 
 }
@@ -133,7 +133,7 @@ subprojects {
     libVersion += versionType
 
     def artifactName = props.getProperty("${project.name}ArtifactId", project.name)
-    def artifactGroupId = props.getProperty("${project.name}GroupId", gradlePros.getProperty("maven_groupId"))
+    def artifactGroupId = props.getProperty("${project.name}GroupId", gradlePros.getProperty("project.groupId", gradlePros.getProperty("maven_groupId")))
     def gitUrl = props.getProperty("${project.name}GitUrl", gradlePros.getProperty("project.gitUrl"))
     def siteUrl = props.getProperty("${project.name}SiteUrl", gradlePros.getProperty("project.siteUrl"))
     def versionDesc = props.getProperty("${project.name}VersionDesc")
