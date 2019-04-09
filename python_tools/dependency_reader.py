@@ -42,20 +42,27 @@ class Dependency:
                 module_array) + '):)).*')
 
         gradle_array = get_all_gradle_path(version_properties, root_dir, module_array)
+
         for module_name, gradle in gradle_array.items():
             self.modules[module_name] = read_gradle_dependencies(self.pattern, module_name, gradle, module_array)
 
-        self.sorted_modules = self.sort_by_dependency_relationship()
+        self.sorted_modules = self.sort_by_dependency_relationship(version_properties)
+
 
     # 获取直接或间接依赖name的所有module
-    def get_all_reverse_dependencies(self, name):
+    def get_all_reverse_dependencies(self, name, version_properties):
         rev_modules = []
         find_reverse_dependency_module(self.modules, name, rev_modules)
+
+        artifact_key = name + 'ArtifactId'
+        if version_properties.has_key(artifact_key):
+            find_reverse_dependency_module(self.modules, version_properties.get(artifact_key), rev_modules)
+
         return rev_modules
 
     # 按照依赖关系进行排序，被依赖的排在前面先发布
     # 比如 lib2 依赖于 lib, 那么 lib 应该排在前面
-    def sort_by_dependency_relationship(self):
+    def sort_by_dependency_relationship(self, version_properties):
         sorted_modules = []
 
         # 如果只有一项的话，那就没有必要过多的循环了
@@ -74,7 +81,7 @@ class Dependency:
         # 再遍历未依赖的 module
         for m in m_with_no_deps:
             # 上述例子中返回, [lib2,lib3]
-            arr = self.get_all_reverse_dependencies(m)  # 计算其被依赖的所有module
+            arr = self.get_all_reverse_dependencies(m, version_properties)  # 计算其被依赖的所有module
             tmp = []
             # 将数组排入序列，确保被依赖的module排在前面
             # 如： ['a', 'b', 'c', 'd']        和       ['A', 'f', 'c', 'e']
@@ -91,6 +98,7 @@ class Dependency:
                     tmp.append(value)
             if len(tmp) > 0:
                 sorted_modules.extend(tmp)
+
         return sorted_modules
 
 
@@ -126,6 +134,7 @@ def get_deploy_modules(root_dir, version_properties, down_search=True):
             sub_array = get_deploy_modules(file, version_properties, False)
             for sub_item in sub_array:
                 module_array.append(sub_item)
+
     return module_array
 
 
